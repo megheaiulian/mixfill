@@ -4,7 +4,7 @@ var express = require('express'),
 	async = require('async'),
 	fs = require('fs');
 
-app.use('/test',express.static(__dirname + './../public'));
+// app.use('/test',express.static(__dirname + './../public'));
 
 
 app.get('/',function(req,res,next){
