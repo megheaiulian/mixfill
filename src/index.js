@@ -49,6 +49,10 @@ var MixFill = function(path){
 		var self = this,
 			url = self.path+'?fill=',
 			shims = self.needed;
+		if(!(shims.length>0)){
+			callback();
+			return self;
+		}
 		for(var i=0;i<shims.length;i++){
 			var shim = shims[i];
 			url += shim +"-";
