@@ -1,486 +1,178 @@
-/**
- * Promise Polyfill
- */
+(function(global) {
+	if(typeof module !== 'undefined' && module.exports) {
+		module.exports = global.Promise ? global.Promise : Promise;
+	} else if (!global.Promise) {
+		global.Promise = Promise;
+	}
 
-(function() {
-	
-	var _global = this;
+	// Use polyfill for setImmediate for performance gains
+	var asap = global.setImmediate || function(fn) { setTimeout(fn, 1); };
 
-	// 
-	// Install the Promise constructor into the global scope, if and only if a
-	// native promise constructor does not exist.
-	// 
-	exports.install = function() {
-		if (! _global.Promise) {
-			_global.Promise = Promise;
+	// Polyfill for Function.prototype.bind
+	function bind(fn, thisArg) {
+		return function() {
+			fn.apply(thisArg, arguments);
 		}
-	};
+	}
 
-	// 
-	// Remove global.Promise, but only if it is our version
-	// 
-	exports.uninstall = function() {
-		if (_global.Promise && _global.Promise === Promise) {
-			_global.Promise = void(0);
-			delete _global.Promise;
+	var isArray = Array.isArray || function(value) { return Object.prototype.toString.call(value) === "[object Array]" };
+
+	function Promise(fn) {
+		if (typeof this !== 'object') throw new TypeError('Promises must be constructed via new');
+		if (typeof fn !== 'function') throw new TypeError('not a function');
+		this._state = null;
+		this._value = null;
+		this._deferreds = []
+
+		doResolve(fn, bind(resolve, this), bind(reject, this))
+	}
+
+	function handle(deferred) {
+		var me = this;
+		if (this._state === null) {
+			this._deferreds.push(deferred);
+			return
 		}
-	};
-
-	// 
-	// State constants
-	// 
-	var PENDING      = void(0);
-	var UNFULFILLED  = 0;
-	var FULFILLED    = 1;
-	var FAILED       = 2;
-
-	// 
-	// The Promise constructor
-	// 
-	// @param {callback} the callback that defines the process to occur
-	// 
-	var Promise = exports.Promise = function(callback) {
-		// Check that a function argument was given
-		if (typeof callback !== 'function') {
-			throw new TypeError('Promise constructor takes a function argument');
-		}
-
-		// Check that a new instance was created, and not just a function call was made
-		if (! (this instanceof Promise)) {
-			throw new TypeError('Failed to construct \'Promise\': Please use the \'new\' operator, this object constructor cannot be called as a function.');
-		}
-
-		var self = this;
-
-		// The queue of functions waiting for the promise to resolve/reject
-		utils.defineProperty(this, 'funcs', {
-			enumerable: false,
-			configurable: false,
-			writable: false,
-			value: [ ]
-		});
-
-		// The queue of functions waiting for the promise to resolve/reject
-		utils.defineProperty(this, 'value', {
-			enumerable: false,
-			configurable: true,
-			writable: false,
-			value: void(0)
-		});
-
-		// Call the function, passing in the resolve and reject functions
-		try {
-			callback(resolve, reject);
-		} catch (err) {
-			reject(err);
-		}
-
-		// The {resolve} callback given to the handler function
-		function resolve(value) {
-			resolvePromise(self, value);
-		}
-
-		// The {reject} callback given to the handler function
-		function reject(value) {
-			rejectPromise(self, value);
-		}
-	};
-
-	// --------------------------------------------------------
-
-	// 
-	// Assigns handler function(s) for the resolve/reject events
-	// 
-	// @param {onResolve} optional; a function called when the promise resolves
-	// @param {onReject} optional; a function called when the promise rejects
-	// @return Promise
-	// 
-	Promise.prototype.then = function(onResolve, onReject) {
-		var self = this;
-
-		// Create the new promise that will be returned
-		var promise = new Promise(function( ) { });
-
-		// If the promise is already completed, call the callback immediately
-		if (this.state) {
-			setImmediate(function() {
-				invokeFunction(self, promise, (self.state === FULFILLED ? onResolve : onReject));
-			});
-		}
-
-		// Otherwise, add the functions to the list
-		else {
-			this.funcs.push(promise, onResolve, onReject);
-		}
-
-		return promise;
-	};
-
-	// 
-	// Assigns a handler function for the reject event
-	// 
-	// @param {onReject} a function called when the promise rejects
-	// @return Promise
-	// 
-	Promise.prototype.catch = function(onReject) {
-		return this.then(null, onReject);
-	};
-
-	// --------------------------------------------------------
-
-	// 
-	// Returns an immediately resolving promise which resolves with {value}. If {value} is
-	// a thenable, the new promise will instead follow the given thenable.
-	// 
-	// @param {value} the value to resolve with
-	// @return Promise
-	// 
-	Promise.resolve = function(value) {
-		try {
-			var then = utils.thenable(value);
-		} catch (err) {
-			return new Promise(autoResolve);
-		}
-
-		var callback = then
-			? function(resolve, reject) {
-				then.call(value, resolve, reject);
-			}
-			: autoResolve;
-
-		function autoResolve(resolve) {
-			resolve(value);
-		}
-
-		return new Promise(callback);
-	};
-
-	// 
-	// Returns an immediately rejected promise
-	// 
-	// @param {reason} the reason for the rejection
-	// @return Promise
-	// 
-	Promise.reject = function(reason) {
-		return new Promise(function(resolve, reject) {
-			reject(reason);
-		});
-	};
-
-	// 
-	// Returns a new promise which resolves/rejects based on an array of given promises
-	// 
-	// @param {promises} the promises to handle
-	// @return Promise
-	// 
-	Promise.all = function(promises) {
-		return new Promise(function(resolve, reject) {
-			if (! Array.isArray(promises)) {
-				resolve([ ]);
+		asap(function() {
+			var cb = me._state ? deferred.onFulfilled : deferred.onRejected
+			if (cb === null) {
+				(me._state ? deferred.resolve : deferred.reject)(me._value);
 				return;
 			}
+			var ret;
+			try {
+				ret = cb(me._value);
+			}
+			catch (e) {
+				deferred.reject(e);
+				return;
+			}
+			deferred.resolve(ret);
+		})
+	}
 
-			var values = [ ];
-			var finished = false;
-			var remaining = promises.length;
-			
-			promises.forEach(function(promise, index) {
-				var then = utils.thenable(promise);
-
-				if (! then) {
-					onResolve(promise);
+	function resolve(newValue) {
+		try { //Promise Resolution Procedure: https://github.com/promises-aplus/promises-spec#the-promise-resolution-procedure
+			if (newValue === this) throw new TypeError('A promise cannot be resolved with itself.');
+			if (newValue && (typeof newValue === 'object' || typeof newValue === 'function')) {
+				var then = newValue.then;
+				if (typeof then === 'function') {
+					doResolve(bind(then, newValue), bind(resolve, this), bind(reject, this));
 					return;
 				}
-
-				then.call(promise,
-					function onResolve(value) {
-						remaining--;
-						values[index] = value;
-						checkIfFinished();
-					},
-					function onReject(reason) {
-						finished = true;
-						reject(reason);
-					}
-				);
-			});
-
-			function checkIfFinished() {
-				if (! finished && ! remaining) {
-					finished = true;
-					resolve(values);
-				}
 			}
-		});
-	};
+			this._state = true;
+			this._value = newValue;
+			finale.call(this);
+		} catch (e) { reject.call(this, e); }
+	}
 
-	// 
-	// Returns a new promise which resolve/rejects as soon as the first given promise resolves
-	// or rejects
-	// 
-	// @param {promises} an array of promises
-	// @return Promise
-	// 
-	Promise.race = function(promises) {
-		var promise = new Promise(function() { });
+	function reject(newValue) {
+		this._state = false;
+		this._value = newValue;
+		finale.call(this);
+	}
 
-		promises.forEach(function(childPromise) {
-			childPromise.then(
-				function(value) {
-					resolvePromise(promise, value);
-				},
-				function(value) {
-					rejectPromise(promise, value);
-				}
-			);
-		});
+	function finale() {
+		for (var i = 0, len = this._deferreds.length; i < len; i++) {
+			handle.call(this, this._deferreds[i]);
+		}
+		this._deferreds = null;
+	}
 
-		return promise;
-	};
+	function Handler(onFulfilled, onRejected, resolve, reject){
+		this.onFulfilled = typeof onFulfilled === 'function' ? onFulfilled : null;
+		this.onRejected = typeof onRejected === 'function' ? onRejected : null;
+		this.resolve = resolve;
+		this.reject = reject;
+	}
 
-	// --------------------------------------------------------
-
-	// 
-	// Determines how to properly resolve the promise
-	// 
-	// @param {promise} the promise
-	// @param {value} the value to give the promise
-	// @return void
-	// 
-	function resolvePromise(promise, value) {
-		if (! handleThenable(promise, value)) {
-			fulfillPromise(promise, value);
+	/**
+	 * Take a potentially misbehaving resolver function and make sure
+	 * onFulfilled and onRejected are only called once.
+	 *
+	 * Makes no guarantees about asynchrony.
+	 */
+	function doResolve(fn, onFulfilled, onRejected) {
+		var done = false;
+		try {
+			fn(function (value) {
+				if (done) return;
+				done = true;
+				onFulfilled(value);
+			}, function (reason) {
+				if (done) return;
+				done = true;
+				onRejected(reason);
+			})
+		} catch (ex) {
+			if (done) return;
+			done = true;
+			onRejected(ex);
 		}
 	}
 
-	// 
-	// When a promise resolves with another thenable, this function handles delegating control
-	// and passing around values
-	// 
-	// @param {child} the child promise that values will be passed to
-	// @param {value} the thenable value from the previous promise
-	// @return boolean
-	// 
-	function handleThenable(promise, value) {
-		var done, then;
+	Promise.prototype['catch'] = function (onRejected) {
+		return this.then(null, onRejected);
+	};
 
-		// Attempt to get the `then` method from the thenable (if it is a thenable)
-		try {
-			if (! (then = utils.thenable(value))) {
-				return false;
-			}
-		} catch (err) {
-			rejectPromise(promise, err);
-			return true;
-		}
-		
-		// Ensure that the promise did not attempt to fulfill with itself
-		if (promise === value) {
-			rejectPromise(promise, new TypeError('Circular resolution of promises'));
-			return true;
-		}
+	Promise.prototype.then = function(onFulfilled, onRejected) {
+		var me = this;
+		return new Promise(function(resolve, reject) {
+			handle.call(me, new Handler(onFulfilled, onRejected, resolve, reject));
+		})
+	};
 
-		try {
-			// Wait for the thenable to fulfill/reject before moving on
-			then.call(value,
-				function(subValue) {
-					if (! done) {
-						done = true;
+	Promise.all = function () {
+		var args = Array.prototype.slice.call(arguments.length === 1 && isArray(arguments[0]) ? arguments[0] : arguments);
 
-						// Once again look for circular promise resolution
-						if (value === subValue) {
-							rejectPromise(promise, new TypeError('Circular resolution of promises'));
+		return new Promise(function (resolve, reject) {
+			if (args.length === 0) return resolve([]);
+			var remaining = args.length;
+			function res(i, val) {
+				try {
+					if (val && (typeof val === 'object' || typeof val === 'function')) {
+						var then = val.then;
+						if (typeof then === 'function') {
+							then.call(val, function (val) { res(i, val) }, reject);
 							return;
 						}
-
-						resolvePromise(promise, subValue);
 					}
-				},
-				function(subValue) {
-					if (! done) {
-						done = true;
-
-						rejectPromise(promise, subValue);
+					args[i] = val;
+					if (--remaining === 0) {
+						resolve(args);
 					}
-				}
-			);
-		} catch (err) {
-			if (! done) {
-				done = true;
-
-				rejectPromise(promise, err);
-			}
-		}
-
-		return true;
-	}
-
-	// 
-	// Fulfill the given promise
-	// 
-	// @param {promise} the promise to resolve
-	// @param {value} the value of the promise
-	// @return void
-	// 
-	function fulfillPromise(promise, value) {
-		if (promise.state !== PENDING) {return;}
-
-		setValue(promise, value);
-		setState(promise, UNFULFILLED);
-
-		setImmediate(function() {
-			setState(promise, FULFILLED);
-			invokeFunctions(promise);
-		});
-	}
-
-	// 
-	// Reject the given promise
-	// 
-	// @param {promise} the promise to reject
-	// @param {value} the value of the promise
-	// @return void
-	// 
-	function rejectPromise(promise, value) {
-		if (promise.state !== PENDING) {return;}
-
-		setValue(promise, value);
-		setState(promise, UNFULFILLED);
-
-		setImmediate(function() {
-			setState(promise, FAILED);
-			invokeFunctions(promise);
-		});
-	}
-
-	// 
-	// Set the state of a promise
-	// 
-	// @param {promise} the promise to modify
-	// @param {state} the new state
-	// @return void
-	// 
-	function setState(promise, state) {
-		utils.defineProperty(promise, 'state', {
-			enumerable: false,
-			// According to the spec: If the state is UNFULFILLED (0), the state can be changed;
-			// If the state is FULFILLED (1) or FAILED (2), the state cannot be changed, and therefore we
-			// lock the property
-			configurable: (! state),
-			writable: false,
-			value: state
-		});
-	}
-
-	// 
-	// Set the value of a promise
-	// 
-	// @param {promise} the promise to modify
-	// @param {value} the value to store
-	// @return void
-	// 
-	function setValue(promise, value) {
-		utils.defineProperty(promise, 'value', {
-			enumerable: false,
-			configurable: false,
-			writable: false,
-			value: value
-		});
-	}
-
-	// 
-	// Invoke all existing functions queued up on the promise
-	// 
-	// @param {promise} the promise to run functions for
-	// @return void
-	// 
-	function invokeFunctions(promise) {
-		var funcs = promise.funcs;
-
-		for (var i = 0, c = funcs.length; i < c; i += 3) {
-			invokeFunction(promise, funcs[i], funcs[i + promise.state]);
-		}
-
-		// Empty out this list of functions as no one function will be called
-		// more than once, and we don't want to hold them in memory longer than needed
-		promise.funcs.length = 0;
-	}
-
-	// 
-	// Invoke one specific function for the promise
-	// 
-	// @param {promise} the promise the function belongs too (that .then was called on)
-	// @param {child} the promise return from the .then call; the next in line
-	// @param {func} the function to call
-	// @return void
-	// 
-	function invokeFunction(promise, child, func) {
-		var value = promise.value;
-		var state = promise.state;
-
-		// If we have a function to run, run it
-		if (typeof func === 'function') {
-			try {
-				value = func(value);
-			} catch (err) {
-				rejectPromise(child, err);
-				return;
-			}
-			
-			resolvePromise(child, value);
-		}
-
-		else if (state === FULFILLED) {
-			resolvePromise(child, value);
-		}
-
-		else if (state === FAILED) {
-			rejectPromise(child, value);
-		}
-	}
-
-// --------------------------------------------------------
-
-	var utils = (function(exports) {
-
-		// 
-		// If the given value is a valid thenable, return the then method; otherwise, return false
-		// 
-		exports.thenable = function(value) {
-			if (value && (typeof value === 'object' || typeof value === 'function')) {
-				try {
-					var then = value.then;
-				} catch (err) {
-					throw err;
-				}
-
-				if (typeof then === 'function') {
-					return then;
+				} catch (ex) {
+					reject(ex);
 				}
 			}
+			for (var i = 0; i < args.length; i++) {
+				res(i, args[i]);
+			}
+		});
+	};
 
-			return false;
+	Promise.resolve = function (value) {
+		if (value && typeof value === 'object' && value.constructor === Promise) {
+			return value;
 		}
 
-		// 
-		// Shim Object.defineProperty if needed; This will never run in Node.js land, but
-		// is here for when we browserify
-		// 
-		exports.defineProperty = function(obj, prop, opts) {
-			if (Object.defineProperty) {
-				try {
-					return Object.defineProperty(obj, prop, opts);
-				} catch (err) { }
+		return new Promise(function (resolve) {
+			resolve(value);
+		});
+	};
+
+	Promise.reject = function (value) {
+		return new Promise(function (resolve, reject) {
+			reject(value);
+		});
+	};
+
+	Promise.race = function (values) {
+		return new Promise(function (resolve, reject) {
+			for(var i = 0, len = values.length; i < len; i++) {
+				values[i].then(resolve, reject);
 			}
-			
-			if (opts.value) {
-				obj[prop] = opts.value;
-			}
-		};
-
-		return exports;
-	}({ }));
-
-}).call();
-
-/* End of file promise.js */
+		});
+	};
+})(this);

@@ -1,3 +1,6 @@
+require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"mixfill":[function(require,module,exports){
+module.exports=require('2genGb');
+},{}],"2genGb":[function(require,module,exports){
 var polyfills = require('./polyfills'),
 	loadScript = function(src,callback){
 		var doc = document,
@@ -61,3 +64,37 @@ var MixFill = function(path){
 	}
 };
 module.exports = MixFill;
+},{"./polyfills":3}],3:[function(require,module,exports){
+var Polyfills = {
+	eventListener: {
+		test: function(){
+			var winProto = window.prototype;
+			return 'addEventListener' in winProto && 'removeEventListener' in winProto && 'dispatchEvent'
+		}
+	},
+	promise : {
+		test: function(){
+			return 'Promise' in window
+		}
+	},
+	yesop:{
+		test:function(){
+			return true
+		}
+	}
+	,
+	needop:{
+		test :function(){
+			return false;
+		}
+	},
+	noop:{
+		test:function(){
+			return false
+		},
+		needs:['needop']
+
+	}
+}
+module.exports = Polyfills;
+},{}]},{},[]);
