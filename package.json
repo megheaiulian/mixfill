@@ -1,0 +1,27 @@
+{
+  "name": "mixfill",
+  "version": "0.0.0",
+  "description": "A polyfill library",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/megheaiulian/mixfill.git"
+  },
+  "keywords": [
+    "polyfill",
+    "mixfill",
+    "shim"
+  ],
+  "author": "Meghea Iulian <me@megheaiulian.com> (http://megheaiulian.com)",
+  "license": "WTFPL",
+  "bugs": {
+    "url": "https://github.com/megheaiulian/mixfill/issues"
+  },
+  "homepage": "https://github.com/megheaiulian/mixfill",
+  "dependencies": {
+    "express": "^4.6.1"
+  }
+}
