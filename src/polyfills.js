@@ -30,6 +30,11 @@ var Polyfills = {
 			}
 			return true;
 		}
+	},
+	elementClassList:{
+		test: function(){
+			return "classList" in document.createElement("_")
+		}
 	}
 	//,
 	// yesop:{
