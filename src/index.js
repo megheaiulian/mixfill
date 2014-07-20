@@ -17,7 +17,7 @@ var polyfills = require('./detect'),
 		};
 
 		// use body if available. more safe in IE
-		(doc.body || doc.head).appendChild(s);
+		(doc.body || doc.head || doc.getElementsByTagName("head")[0]).appendChild(s);
 	};
 
 var MixFill = function(path){
