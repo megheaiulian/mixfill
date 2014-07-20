@@ -2,10 +2,12 @@ var express = require('express'),
 	bodyParser = require('body-parser'),
 	app = express(),
 	async = require('async'),
-	fs = require('fs');
+	fs = require('fs'),
+	compression = require('compression');
 
 // app.use('/test',express.static(__dirname + './../public'));
 
+app.use(compression());
 
 app.get('/',function(req,res,next){
 	var query = req.query,
@@ -14,16 +16,12 @@ app.get('/',function(req,res,next){
 		fills = fill.split('-');
 		async.map(fills,function(i,callback){
 			fs.readFile(__dirname+"/min/"+i+".js",'utf8',function(err,data){
-				if(err){
-					callback(null,false)
-				}else{
-					callback(null,data);	
-				}
-				
+				callback(null,err?false:data);
 			});
 		},function(err,results){
-			console.log(results);
 			res.contentType("text/javascript");
+			res.setHeader("Cache-Control", "public, max-age=345600");
+			res.setHeader("Expires", new Date(Date.now() + 345600000).toUTCString());
 			res.send(results.filter(Boolean).join(';'));
 		});
 	}else{
