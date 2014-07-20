@@ -9,12 +9,12 @@ app.use(compression());
 
 app.get('/(:fill).js',function(req,res,next){
 	var fill = req.params.fill
-		, fills=[];
+		, fills = [];
 
 	if(fill){
 		fills = fill.split('-').sort();
 		async.map(fills,function(i,callback){
-			fs.readFile(__dirname+"/min/"+i+".js",'utf8',function(err,data){
+			fs.readFile(__dirname+"/../lib/fills/"+i+".js",'utf8',function(err,data){
 				callback(null,err?false:data);
 			});
 		},function(err,results){

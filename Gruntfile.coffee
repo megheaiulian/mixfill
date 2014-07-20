@@ -13,19 +13,23 @@ module.exports = (grunt)=>
 		pkg: grunt.file.readJSON 'package.json'
 		browserify:
 			source:
-				dest: 'public/index.js'
+				dest: 'lib/index.js'
 				src:[]            
 				options:
 					alias: ['src/index.js:mixfill']
 		uglify:
 			shims:
 				files:[
-					cwd:'server/polyfills'
+					cwd:'src/fills'
 					expand:true
 					src:["*.js"]
-					dest:'server/min/'
+					dest:'lib/fills/'
 				]
+			src:
+				files:
+					"lib/index.js":['lib/index.js']
 				
 	)
+	grunt.registerTask 'default',['browserify']
 	grunt.loadNpmTasks 'grunt-contrib-uglify'
 	grunt.loadNpmTasks "grunt-browserify"

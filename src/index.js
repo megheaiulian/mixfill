@@ -1,4 +1,4 @@
-var polyfills = require('./polyfills'),
+var polyfills = require('./detect'),
 	loadScript = function(src,callback){
 		var doc = document,
 			s = doc.createElement('script');
@@ -32,9 +32,9 @@ var MixFill = function(path){
 		features = features || [];
 
 		for(var i=0; i<features.length; i++){
-			var feature = features[i],
-				fill = polyfills[feature];
-			console.log(fill);
+			var feature = features[i]
+				, fill = polyfills[feature];
+				
 			if(fill && !fill.test()){
 				if(fill.needs){
 					self.needs(fill.needs);
