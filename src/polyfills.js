@@ -1,24 +1,18 @@
 var Polyfills = {
-	eventListener: {
+	elementClassList:{
 		test: function(){
-			var winProto = Window.prototype;
-			return 'addEventListener' in winProto && 'removeEventListener' in winProto && 'dispatchEvent'
-		}
-	},
-	promise : {
-		test: function(){
-			return 'Promise' in window
+			return "classList" in document.createElement("_")
 		}
 	},
 	elementMatches:{
 		test:function(){
-			if (Element){(function(ElementPrototype){
-				ElementPrototype.matches = ElementPrototype.matchesSelector =
-				ElementPrototype.matchesSelector || 
-				ElementPrototype.webkitMatchesSelector ||
-				ElementPrototype.mozMatchesSelector ||
-				ElementPrototype.msMatchesSelector ||
-				ElementPrototype.oMatchesSelector ||
+			if (Element){(function(proto){
+				proto.matches = proto.matchesSelector =
+				proto.matchesSelector || 
+				proto.webkitMatchesSelector ||
+				proto.mozMatchesSelector ||
+				proto.msMatchesSelector ||
+				proto.oMatchesSelector ||
 				function (selector) {
 					var nodes = (this.parentNode || this.document).querySelectorAll(selector), i = -1;
 			 
@@ -31,11 +25,18 @@ var Polyfills = {
 			return true;
 		}
 	},
-	elementClassList:{
+	eventListener: {
 		test: function(){
-			return "classList" in document.createElement("_")
+			var winProto = Window.prototype;
+			return 'addEventListener' in winProto && 'removeEventListener' in winProto && 'dispatchEvent'
+		}
+	},
+	promise : {
+		test: function(){
+			return 'Promise' in window
 		}
 	}
+	
 	//,
 	// yesop:{
 	// 	test:function(){

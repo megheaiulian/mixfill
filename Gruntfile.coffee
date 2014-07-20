@@ -17,5 +17,15 @@ module.exports = (grunt)=>
 				src:[]            
 				options:
 					alias: ['src/index.js:mixfill']
+		uglify:
+			shims:
+				files:[
+					cwd:'server/polyfills'
+					expand:true
+					src:["*.js"]
+					dest:'server/min/'
+				]
+				
 	)
+	grunt.loadNpmTasks 'grunt-contrib-uglify'
 	grunt.loadNpmTasks "grunt-browserify"

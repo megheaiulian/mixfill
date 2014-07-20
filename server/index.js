@@ -13,7 +13,7 @@ app.get('/',function(req,res,next){
 	if(fill){
 		fills = fill.split('-');
 		async.map(fills,function(i,callback){
-			fs.readFile(__dirname+"/polyfills/"+i+".js",'utf8',function(err,data){
+			fs.readFile(__dirname+"/min/"+i+".js",'utf8',function(err,data){
 				if(err){
 					callback(null,false)
 				}else{
