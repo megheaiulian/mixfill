@@ -1,19 +1,18 @@
-var express = require('express'),
-	bodyParser = require('body-parser'),
-	app = express(),
-	async = require('async'),
-	fs = require('fs'),
-	compression = require('compression');
-
-// app.use('/test',express.static(__dirname + './../public'));
+var express = require('express')
+	, bodyParser = require('body-parser')
+	, app = express()
+	, async = require('async')
+	, fs = require('fs')
+	, compression = require('compression');
 
 app.use(compression());
 
-app.get('/',function(req,res,next){
-	var query = req.query,
-		fill = query.fill,fills=[];
+app.get('/(:fill).js',function(req,res,next){
+	var fill = req.params.fill
+		, fills=[];
+
 	if(fill){
-		fills = fill.split('-');
+		fills = fill.split('-').sort();
 		async.map(fills,function(i,callback){
 			fs.readFile(__dirname+"/min/"+i+".js",'utf8',function(err,data){
 				callback(null,err?false:data);
@@ -27,8 +26,6 @@ app.get('/',function(req,res,next){
 	}else{
 		res.send('')
 	}
-	//console.log(req.query);
-	// res.send("A b");
 });
 
 app.listen(process.env.PORT || 5000);
