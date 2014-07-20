@@ -25,6 +25,25 @@ var Polyfills = {
 			return true;
 		}
 	},
+	es5:{
+		test:function(){
+			var arrayProto = Array.prototype
+				, dateProto = Date.prototype
+				, stringProto = String.prototype;
+			return arrayProto.every && arrayProto.filter && arrayProto.forEach && arrayProto.indexOf && arrayProto.lastIndexOf
+				&& arrayProto.map && arrayProto.some && arrayProto.reduce && arrayProto.reduceRight && Array.isArray && Date.now &&
+				Date.parse && dateProto.toJSON && dateProto.toISOString && Function.prototype.bind && Number.prototype.toFixed &&
+				Object.keys && stringProto.split && stringProto.trim && stringProto.replace;
+		}
+	},
+	es5Object:{
+		test:function(){
+			var obj = Object;
+			return obj.create && obj.getPrototypeOf && obj.getOwnPropertyNames && obj.isSealed && obj.isFrozen &&
+				obj.isExtensible && obj.getOwnPropertyDescriptor && obj.defineProperty && obj.defineProperties &&
+				obj.seal && obj.freeze && obj.preventExtensions;
+		}
+	},
 	eventListener: {
 		test: function(){
 			var winProto = Window.prototype;
@@ -36,25 +55,5 @@ var Polyfills = {
 			return 'Promise' in window
 		}
 	}
-	
-	//,
-	// yesop:{
-	// 	test:function(){
-	// 		return true
-	// 	}
-	// }
-	// ,
-	// needop:{
-	// 	test :function(){
-	// 		return false;
-	// 	}
-	// },
-	// noop:{
-	// 	test:function(){
-	// 		return false
-	// 	},
-	// 	needs:['needop']
-
-	// }
 }
 module.exports = Polyfills;
