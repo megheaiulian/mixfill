@@ -47,7 +47,7 @@ var MixFill = function(path){
 
 	fill.load = function(callback){
 		var self = this,
-			url = self.path+'?fill=',
+			url = self.path,
 			shims = self.needed;
 		if(!(shims.length>0)){
 			callback();
@@ -58,6 +58,7 @@ var MixFill = function(path){
 			url += shim +"-";
 		}
 		url = url.replace(/\-$/,'')
+		url+=".js";
 		loadScript(url,function(){
 			callback()
 		});
