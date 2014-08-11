@@ -46,7 +46,7 @@ var Polyfills = {
 	},
 	eventListener: {
 		test: function(){
-			var winProto = window.prototype;
+			var winProto = Window?Window.prototype:window;
 			return 'addEventListener' in winProto && 'removeEventListener' in winProto && 'dispatchEvent' in winProto
 		}
 	},
