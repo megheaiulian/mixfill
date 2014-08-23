@@ -1,68 +1,71 @@
-var polyfills = require('./detect'),
-	loadScript = function(src,callback){
-		var doc = document,
-			s = doc.createElement('script');
-		s.type = 'text/' + (src.type || 'javascript');
-		s.src = src.src || src;
-		s.async = false;
+var tests = require('./tests') 
+	, isArray = function(obj){return Object.prototype.toString.call( obj ) === '[object Array]'}
+	, isFunction = function(obj){return !!(obj && obj.constructor && obj.call && obj.apply)}
+	, loadScript = require('./load');
 
-		s.onreadystatechange = s.onload = function () {
+var MixFill = function(base){
 
-			var state = s.readyState;
-
-			if (!callback.done && (!state || /loaded|complete/.test(state))) {
-				callback.done = true;
-				callback();
+	var that = this;
+	
+	that.base = base;
+	that.tests = tests;
+	that._need = {};
+	
+	that.all = function(cb){
+		var self = this,tests=self.tests,all=[];
+		for(var test in tests){
+			if(tests.hasOwnProperty(test)){
+				all.push(test);
 			}
-		};
-
-		// use body if available. more safe in IE
-		(doc.body || doc.head || doc.getElementsByTagName("head")[0]).appendChild(s);
+		}
+		return self.need(all).load(cb);
 	};
 
-var MixFill = function(path){
-
-	var fill = this;
-	
-	fill.path = path,
-	fill.needed  = []; 
-	
-	fill.needs = function(features){
-		var self = this;
-		features = features || [];
-
-		for(var i=0; i<features.length; i++){
-			var feature = features[i]
-				, fill = polyfills[feature];
-				
-			if(fill && !fill.test()){
-				if(fill.needs){
-					self.needs(fill.needs);
+	that.need = function(features){
+		var self = this,i, tests = self.tests;
+		if(features){
+			features = !isArray(features)?[features]:features;
+			for(i=0; i < features.length; i++){
+				var feature = features[i]
+					, ok = tests[feature];
+				if(ok && !(ok = tests[feature] = (isFunction(ok)?Boolean(ok()):ok))){
+					self._need[feature] = true;
 				}
-				self.needed.push(feature);
 			}
 		}
 		return self;
 	};
 
-	fill.load = function(callback){
+	that.load = function(cb){
 		var self = this,
-			url = self.path,
-			shims = self.needed;
-		if(!(shims.length>0)){
-			callback();
-			return self;
+			url = self.base,
+			need = self._need,
+			tests = self.tests,
+			shims = [];
+		
+		if(need){
+			for(var shim in need){
+				if(need.hasOwnProperty(shim) && need[shim]){
+					shims.push(shim);
+				}
+			}
+			shims.sort();
+			url = url.replace(/\/$/,'')+ "/" + shims.join("-")+'.js';
+			loadScript(url,function(err){
+				if(!err){
+					self._need = {};
+					for(var i=0;i<shims.length;i++){
+						if(tests[shims[i]]){
+							delete tests[shims[i]];
+						}
+					}
+				}
+				cb(err);
+			});
+		}else{
+			cb()
+			return;
 		}
-		for(var i=0;i<shims.length;i++){
-			var shim = shims[i];
-			url += shim +"-";
-		}
-		url = url.replace(/\-$/,'')
-		url+=".js";
-		loadScript(url,function(){
-			callback()
-		});
-		return self;
 	}
 };
 module.exports = MixFill;
