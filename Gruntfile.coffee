@@ -10,11 +10,15 @@ powerset = (input)=>
 		powerset.reduce fn2,powerset
 	reducer.call input, fn1, [[]]
 
-console.warn powerset([1,2,3])
 module.exports = (grunt)=>
 	shims = grunt.file.expand {cwd:'src/fills'},"*.js"
-	shims = shims.map (file)->file.replace(".js",'')
-	console.warn powerset(shims)
+	shims = powerset(shims).slice(1);
+	shims = shims.map (files)=>
+		{
+			dest: 'public/shims/'+files.map((file)->file.replace('.js','')).join('-')+".js"
+			src: files.map (file)->"src/fills/#{file}"
+		}
+	
 	aliasify = (aliases)->
 		aliasArray = [];
 		aliases = if util.isArray(aliases) then aliases else [aliases];
@@ -34,13 +38,15 @@ module.exports = (grunt)=>
 				options:
 					alias: ['src/index.js:mixfill']
 		uglify:
-			shims:
+			fills:
 				files:[
 					cwd:'src/fills'
 					expand:true
 					src:["*.js"]
 					dest:'lib/fills/'
 				]
+			all:
+				files:shims
 			src:
 				files:
 					"lib/index.js":['lib/index.js']
