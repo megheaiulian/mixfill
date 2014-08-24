@@ -1,14 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
+<title>Loaded</title>
 	<script type="text/javascript" src="index.js"></script>
 	<script type="text/javascript">
 		var MixFill = require('mixfill'),
-			mixfill = new MixFill('http://mixfill.herokuapp.com/');
+			mixfill = new MixFill('/');
+		mixfill.all(function(e){
+			if(e) throw e;
+			console.log('loaded promise:',window.Promise);
+		});
 	</script>
-	<title>Loaded</title>
 </head>
 <body>
-
+asdasdasdasd
 </body>
 </html>
