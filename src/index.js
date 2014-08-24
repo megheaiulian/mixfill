@@ -42,6 +42,12 @@ var MixFill = function(base){
 	that.base = base;
 	that.tests = tests;
 	that._need = {};
+
+	that.setBase = function(base){
+		var self = this;
+		self.base = base;
+		return self;
+	};
 	
 	that.all = function(cb){
 		var self = this,tests=self.tests,all=[];
