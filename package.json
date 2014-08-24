@@ -1,6 +1,6 @@
 {
   "name": "mixfill",
-  "version": "0.0.18",
+  "version": "0.0.19",
   "description": "A polyfill library",
   "main": "src/index.js",
   "scripts": {
