@@ -18,16 +18,6 @@ module.exports = (grunt)=>
 			dest: 'public/shims/'+files.map((file)->file.replace('.js','')).join('-')+".js"
 			src: files.map (file)->"src/fills/#{file}"
 		}
-	
-	aliasify = (aliases)->
-		aliasArray = [];
-		aliases = if util.isArray(aliases) then aliases else [aliases];
-		aliases.forEach (alias)->
-			grunt.file.expandMapping(alias.src, alias.dest, {cwd: alias.cwd}).forEach (file)->
-				expose = file.dest.substr(0, file.dest.lastIndexOf('.'));
-				aliasArray.push('./' + file.src[0] + ':' + expose);
-		return aliasArray;
-
 
 	grunt.initConfig(
 		pkg: grunt.file.readJSON 'package.json'
@@ -50,8 +40,24 @@ module.exports = (grunt)=>
 			src:
 				files:
 					"lib/index.js":['lib/index.js']
-				
+		concat:
+			fills:
+				files:[
+					cwd 	: "src/fills"
+					expand 	: true
+					src 	: ['*.js']
+					dest 	: 'lib/fills'
+				]
+			all:
+				options:
+					separator:';'
+				files:shims
 	)
-	grunt.registerTask 'default',['browserify']
+
 	grunt.loadNpmTasks 'grunt-contrib-uglify'
 	grunt.loadNpmTasks "grunt-browserify"
+	grunt.loadNpmTasks 'grunt-contrib-concat'
+
+	grunt.registerTask 'build', ['browserify','concat']
+	grunt.registerTask 'release',['build','uglify']
+	grunt.registerTask 'default',['build']
