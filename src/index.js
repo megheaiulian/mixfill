@@ -1,7 +1,39 @@
 var tests = require('./tests') 
 	, isArray = function(obj){return Object.prototype.toString.call( obj ) === '[object Array]'}
 	, isFunction = function(obj){return !!(obj && obj.constructor && obj.call && obj.apply)}
-	, loadScript = require('./load');
+	, doc = document
+	, head = doc.getElementsByTagName("head")[0] || doc.documentElement
+	, loadScript = function(src,cb){
+		var script = doc.createElement('script')
+			, done
+			, ready = function(err){ if(cb) cb(err);};
+
+		script.src 		= src;
+		script.async 	= true;
+
+		script.onload = script.onreadystatechange = function () {
+			if(!done && (!script.readyState || /loaded|complete/.test( script.readyState ))){
+				done = 1;
+				script.onload = script.onreadystatechange = null;
+				if(script.parentNode){
+				 	script.parentNode.removeChild(script);
+				}
+				script = null;
+				ready();
+			}
+		};
+		script.onerror = function(){
+			done = 1;
+			ready(new Error('Script Error: ' + src));
+		};
+		setTimeout(function(){
+			if(!done){
+				done = 1;
+				ready(new Error('Timeout: ' + src));
+			}
+		},10e3);
+		head.insertBefore(script,head.firstChild);
+	};
 
 var MixFill = function(base){
 
@@ -37,11 +69,15 @@ var MixFill = function(base){
 	};
 
 	that.load = function(cb){
-		var self = this,
-			url = self.base,
-			need = self._need,
-			tests = self.tests,
-			shims = [];
+		var self = this
+			, url = self.base
+			, need = self._need
+			, tests = self.tests
+			, shims = []
+			, fn = function(err){
+				if(cb) cb(err);
+				return self;
+			}
 		
 		if(need){
 			for(var shim in need){
@@ -49,8 +85,12 @@ var MixFill = function(base){
 					shims.push(shim);
 				}
 			}
+			if(!shims.length){
+				return fn();
+			}
 			shims.sort();
 			url = url.replace(/\/$/,'')+ "/" + shims.join("-")+'.js';
+			console.log('loading:',url);
 			loadScript(url,function(err){
 				if(!err){
 					self._need = {};
@@ -60,12 +100,12 @@ var MixFill = function(base){
 						}
 					}
 				}
-				cb(err);
+				fn(err);
 			});
 		}else{
-			cb()
-			return;
+			fn()
 		}
+		return self;
 	}
 };
 module.exports = MixFill;
