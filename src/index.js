@@ -96,7 +96,6 @@ var MixFill = function(base){
 			}
 			shims.sort();
 			url = url.replace(/\/$/,'')+ "/" + shims.join("-")+'.js';
-			console.log('loading:',url);
 			loadScript(url,function(err){
 				if(!err){
 					self._need = {};
